@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Analysis - Detailed View</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .navbar { background: rgba(255,255,255,0.95); padding: 1rem 2rem; position: sticky; top: 0; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-weight: bold; color: #2E7D32; }
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a { text-decoration: none; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 5px; }
+        .nav-links a:hover, .nav-links a.active { background: #2E7D32; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .controls { background: white; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; display: flex; gap: 1rem; align-items: flex-end; }
+        .control-group { flex: 1; }
+        .control-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .control-group select, .control-group input { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { padding: 0.75rem 1.5rem; background: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .btn:hover { background: #1B5E20; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1rem; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #2E7D32; }
+        .chart-card { background: white; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; }
+        .chart-container { height: 400px; }
+        .footer { background: #1a1a2e; color: white; text-align: center; padding: 2rem; margin-top: 2rem; }
+        @media (max-width: 768px) { .controls { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo"><span>🌤️</span><span>Climate India</span></div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/analysis" class="active">Analysis</a></li>
+                <li><a href="/predict">Predict</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label>Select City</label>
+                <select id="citySelect">
+                    {% for city in cities %}
+                    <option value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control-group">
+                <button class="btn" onclick="loadCityData()">Load Data</button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="cityStats"></div>
+        
+        <div class="chart-card">
+            <h3>Climate Time Series</h3>
+            <div class="chart-container"><canvas id="timeSeriesChart"></canvas></div>
+        </div>
+    </div>
+
+    <footer class="footer"><p>&copy; 2024 Indian Climate Analysis</p></footer>
+
+    <script>
+        let timeSeriesChart = null;
+        
+        async function loadCityData() {
+            const city = document.getElementById('citySelect').value;
+            document.getElementById('cityStats').innerHTML = '<div class="stat-card">Loading...</div>';
+            
+            try {
+                const response = await fetch(`/api/city-data/${encodeURIComponent(city)}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('cityStats').innerHTML = `<div class="stat-card">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                // Update stats
+                document.getElementById('cityStats').innerHTML = `
+                    <div class="stat-card"><div class="stat-value">${data.stats.avg_temp}°C</div><div>Avg Temperature</div></div>
+                    <div class="stat-card"><div class="stat-value">${data.stats.max_temp}°C</div><div>Max Temperature</div></div>
+                    <div class="stat-card"><div class="stat-value">${data.stats.min_temp}°C</div><div>Min Temperature</div></div>
+                    <div class="stat-card"><div class="stat-value">${data.stats.avg_humidity}%</div><div>Avg Humidity</div></div>
+                    <div class="stat-card"><div class="stat-value">${data.stats.total_rainfall} mm</div><div>Total Rainfall</div></div>
+                    <div class="stat-card"><div class="stat-value">${data.stats.avg_aqi}</div><div>Avg AQI</div></div>
+                `;
+                
+                // Create chart
+                const dates = data.data.map(d => d.Date_str);
+                const temps = data.data.map(d => d['Temperature_Avg (°C)']);
+                const humidity = data.data.map(d => d['Humidity (%)']);
+                const rainfall = data.data.map(d => d['Rainfall (mm)']);
+                
+                const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+                if (timeSeriesChart) timeSeriesChart.destroy();
+                
+                timeSeriesChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [
+                            { label: 'Temperature (°C)', data: temps, borderColor: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)', tension: 0.4, fill: true, yAxisID: 'y' },
+                            { label: 'Humidity (%)', data: humidity, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.1)', tension: 0.4, fill: true, yAxisID: 'y1' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { title: { display: true, text: 'Temperature (°C)' }, position: 'left' },
+                            y1: { title: { display: true, text: 'Humidity (%)' }, position: 'right', grid: { drawOnChartArea: false } }
+                        }
+                    }
+                });
+            } catch (error) {
+                document.getElementById('cityStats').innerHTML = `<div class="stat-card">Error: ${error.message}</div>`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => loadCityData());
+    </script>
+</body>
+</html>

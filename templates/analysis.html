@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Climate Analysis - Detailed Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🌤️</span>
+                <span>Climate India</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/analysis" class="active">Analysis</a></li>
+                <li><a href="/predict">Predict</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 style="margin-bottom: 2rem;">Detailed Climate Analysis</h2>
+
+        <!-- City Selection -->
+        <div class="controls">
+            <div class="control-group">
+                <label>Select City</label>
+                <select id="citySelect" onchange="loadCityData(this.value)">
+                    {% for city in cities %}
+                    <option value="{{ city }}">{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Analysis Type</label>
+                <select id="analysisType">
+                    <option value="temperature">Temperature</option>
+                    <option value="humidity">Humidity</option>
+                    <option value="rainfall">Rainfall</option>
+                    <option value="aqi">Air Quality</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- City Stats -->
+        <div class="stats-grid" id="cityStats"></div>
+
+        <!-- Time Series Chart -->
+        <div class="chart-card">
+            <h3>Climate Time Series Analysis</h3>
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="timeSeriesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Correlation Analysis -->
+        <div class="chart-card">
+            <h3>Correlation Matrix</h3>
+            <div id="correlationDisplay"></div>
+        </div>
+
+        <style>
+            .correlation-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+            }
+            .correlation-table th, .correlation-table td {
+                padding: 8px;
+                text-align: center;
+                border: 1px solid #ddd;
+            }
+            .correlation-table th {
+                background: var(--primary);
+                color: white;
+            }
+            .corr-strong {
+                background: #4CAF50;
+                color: white;
+            }
+            .corr-moderate {
+                background: #FFC107;
+            }
+            .corr-weak {
+                background: #f5f5f5;
+            }
+        </style>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Indian Climate Analysis. Data-driven insights for better understanding.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

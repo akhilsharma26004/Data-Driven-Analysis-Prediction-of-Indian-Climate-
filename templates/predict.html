@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Predictions</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .navbar { background: rgba(255,255,255,0.95); padding: 1rem 2rem; position: sticky; top: 0; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; font-weight: bold; color: #2E7D32; }
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a { text-decoration: none; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 5px; }
+        .nav-links a:hover, .nav-links a.active { background: #2E7D32; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .card { background: white; border-radius: 15px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .controls { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        .control-group { flex: 1; min-width: 150px; }
+        .control-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        .control-group select, .control-group input { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; }
+        .btn { padding: 0.75rem 1.5rem; background: #2E7D32; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .btn:hover { background: #1B5E20; }
+        .predictions-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem; }
+        .prediction-item { background: #f5f5f5; padding: 1rem; border-radius: 10px; text-align: center; }
+        .prediction-date { font-weight: bold; margin-bottom: 0.5rem; }
+        .prediction-temp { font-size: 1.5rem; font-weight: bold; color: #2E7D32; }
+        .trend-up { color: #e53935; }
+        .trend-down { color: #4CAF50; }
+        .footer { background: #1a1a2e; color: white; text-align: center; padding: 2rem; margin-top: 2rem; }
+        @media (max-width: 768px) { .controls { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo"><span>🌤️</span><span>Climate India</span></div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/analysis">Analysis</a></li>
+                <li><a href="/predict" class="active">Predict</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h2>Temperature Prediction</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Select City</label>
+                    <select id="tempCity">
+                        {% for city in cities %}
+                        <option value="{{ city }}">{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Days Ahead</label>
+                    <input type="number" id="daysAhead" value="7" min="1" max="14">
+                </div>
+                <div class="control-group">
+                    <button class="btn" onclick="predictTemperature()">Predict Temperature</button>
+                </div>
+            </div>
+            <div id="tempResults"></div>
+        </div>
+
+        <div class="card">
+            <h2>Rainfall Prediction</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Select City</label>
+                    <select id="rainCity">
+                        {% for city in cities %}
+                        <option value="{{ city }}">{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Select Month</label>
+                    <select id="monthSelect">
+                        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <button class="btn" onclick="predictRainfall()">Predict Rainfall</button>
+                </div>
+            </div>
+            <div id="rainResults"></div>
+        </div>
+    </div>
+
+    <footer class="footer"><p>&copy; 2024 Indian Climate Analysis</p></footer>
+
+    <script>
+        async function predictTemperature() {
+            const city = document.getElementById('tempCity').value;
+            const days = document.getElementById('daysAhead').value;
+            
+            document.getElementById('tempResults').innerHTML = '<p>Loading prediction...</p>';
+            
+            try {
+                const response = await fetch('/api/predict-temperature', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city: city, days_ahead: parseInt(days) })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('tempResults').innerHTML = `<p style="color:red">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                let html = `<h3>Temperature Predictions for ${data.city}</h3>
+                           <p>Current Temperature: <strong>${data.current_temp}°C</strong></p>
+                           <div class="predictions-list">`;
+                
+                data.predictions.forEach(pred => {
+                    const trendClass = pred.trend === 'up' ? 'trend-up' : 'trend-down';
+                    const trendSymbol = pred.trend === 'up' ? '▲' : '▼';
+                    html += `<div class="prediction-item">
+                                <div class="prediction-date">${pred.date}</div>
+                                <div class="prediction-temp">${pred.predicted_temp}°C</div>
+                                <div class="${trendClass}">${trendSymbol}</div>
+                            </div>`;
+                });
+                html += '</div>';
+                document.getElementById('tempResults').innerHTML = html;
+            } catch (error) {
+                document.getElementById('tempResults').innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function predictRainfall() {
+            const city = document.getElementById('rainCity').value;
+            const month = document.getElementById('monthSelect').value;
+            
+            document.getElementById('rainResults').innerHTML = '<p>Loading prediction...</p>';
+            
+            try {
+                const response = await fetch('/api/rainfall-prediction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ city: city, month: parseInt(month) })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('rainResults').innerHTML = `<p style="color:red">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                document.getElementById('rainResults').innerHTML = `
+                    <h3>Rainfall Prediction for ${data.city}</h3>
+                    <p>Month: ${monthNames[data.month - 1]}</p>
+                    <div class="stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-top:1rem;">
+                        <div class="prediction-item"><div class="prediction-temp">${data.predicted_rainfall} mm</div><div>Predicted Rainfall</div></div>
+                        <div class="prediction-item"><div class="prediction-temp">${data.max_expected} mm</div><div>Max Expected</div></div>
+                        <div class="prediction-item"><div class="prediction-temp">${data.probability}%</div><div>Probability</div></div>
+                        <div class="prediction-item"><div class="prediction-temp">${data.intensity}</div><div>Intensity</div></div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('rainResults').innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
